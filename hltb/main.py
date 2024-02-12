@@ -9,9 +9,9 @@ BASE_URL = "https://howlongtobeat.com"
 
 class Game(NamedTuple):
     title: str
-    main: str
-    extra: str
-    complete: str
+    main: int
+    extra: int
+    complete: int
 
 
 def get_cli_parser() -> ArgumentParser:
@@ -28,15 +28,11 @@ def get_cli_parser() -> ArgumentParser:
     return parser
 
 
-def _parse_time(time: int | str) -> str:
-    return f"{int(time) // (60 * 60)} Hr {int(time) % (60 * 60) // 60} Min"
-
-
 def parse_game(game: Dict[str, str | int]) -> Game:
     title = str(game["game_name"])
-    main = _parse_time(game["comp_main"])
-    extra = _parse_time(game["comp_plus"])
-    complete = _parse_time(game["comp_all"])
+    main = int(game["comp_main"])
+    extra = int(game["comp_plus"])
+    complete = int(game["comp_100"])
 
     return Game(title, main, extra, complete)
 
@@ -63,6 +59,19 @@ def get_games(game: str) -> None | List[Game]:
     return [parse_game(game) for game in resp.json()["data"]]
 
 
+def _get_time_str(time: int) -> str:
+    return f"{time // (60 * 60)} Hr {time % (60 * 60) // 60} Min"
+
+
+def _tabulate_row(game: Game) -> List[str]:
+    return [
+        game.title,
+        _get_time_str(game.main),
+        _get_time_str(game.extra),
+        _get_time_str(game.complete),
+    ]
+
+
 def main():
     args = get_cli_parser().parse_args()
 
@@ -78,7 +87,7 @@ def main():
 
     print(
         tabulate(
-            games,
+            map(_tabulate_row, games),
             headers=["title", "main", "main + extra", "completionist"],
         )
     )
