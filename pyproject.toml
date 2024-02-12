@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "hltb"
+version = "0.1.0"
+description = ""
+authors = ["Arbaaz Shafiq <arbaazshafiq@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+requests = "^2.31.0"
+tabulate = "^0.9.0"
+
+[tool.poetry.scripts]
+hltb = "hltb.main:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
