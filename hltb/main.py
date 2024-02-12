@@ -7,20 +7,28 @@ from tabulate import tabulate
 BASE_URL = "https://howlongtobeat.com"
 
 
-class Game(NamedTuple):
-    title: str
+class Times(NamedTuple):
     main: int
     extra: int
     complete: int
 
+
+class Game(NamedTuple):
+    title: str
+    alias: str
+    released: int
+    times: Times
+
     @classmethod
     def from_dict(cls, game: Dict[str, str | int]) -> Self:
         title = str(game["game_name"])
+        alias = str(game["game_alias"])
+        release = int(game["release_world"])
         main = int(game["comp_main"])
         extra = int(game["comp_plus"])
         complete = int(game["comp_100"])
 
-        return cls(title, main, extra, complete)
+        return cls(title, alias, release, Times(main, extra, complete))
 
 
 def get_cli_parser() -> ArgumentParser:
@@ -33,6 +41,13 @@ def get_cli_parser() -> ArgumentParser:
         metavar="N",
         help="show top N games (max=20)",
         default=1,
+    )
+    parser.add_argument(
+        "--alias", "-a", help="display game alias if avaiable", action="store_true"
+    )
+
+    parser.add_argument(
+        "--released", "-r", help="display the game's release year", action="store_true"
     )
     return parser
 
@@ -47,7 +62,7 @@ def get_games(game: str) -> None | List[Game]:
         "searchType": "games",
         "searchTerms": [game],
         "searchPage": 1,
-        "size": 20,
+        "size": 50,
     }
 
     resp = post(f"{BASE_URL}/api/search", json=body, headers=headers)
@@ -63,34 +78,45 @@ def _get_time_str(time: int) -> str:
     return f"{time // (60 * 60)} Hr {time % (60 * 60) // 60} Min"
 
 
-def _tabulate_row(game: Game) -> List[str]:
-    return [
-        game.title,
-        _get_time_str(game.main),
-        _get_time_str(game.extra),
-        _get_time_str(game.complete),
-    ]
+def get_table(games: List[Game]) -> Dict[str, List[int | str]]:
+    table = {
+        "title": [],
+        "alias": [],
+        "released": [],
+        "main": [],
+        "main + extra": [],
+        "completionist": [],
+    }
+
+    for game in games:
+        table["title"].append(game.title)
+        table["alias"].append(game.alias)
+        table["released"].append(game.released)
+        table["main"].append(_get_time_str(game.times.main))
+        table["main + extra"].append(_get_time_str(game.times.extra))
+        table["completionist"].append(_get_time_str(game.times.complete))
+
+    return table
 
 
 def main():
     args = get_cli_parser().parse_args()
 
     game = args.game
-    n = 20 if args.num > 20 else args.num
+    n = 50 if args.num > 50 else args.num
 
     games = get_games(game)
     if not games:
         print("no games found")
         return
 
-    games = games[:n]
+    table = get_table(games[:n])
+    if not args.released:
+        table.pop("released")
+    if not args.alias:
+        table.pop("alias")
 
-    print(
-        tabulate(
-            map(_tabulate_row, games),
-            headers=["title", "main", "main + extra", "completionist"],
-        )
-    )
+    print(tabulate(table, headers="keys"))
 
 
 if __name__ == "__main__":
