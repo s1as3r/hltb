@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from typing import Dict, List, NamedTuple
+from typing import Dict, List, NamedTuple, Self
 
 from requests import post
 from tabulate import tabulate
@@ -12,6 +12,15 @@ class Game(NamedTuple):
     main: int
     extra: int
     complete: int
+
+    @classmethod
+    def from_dict(cls, game: Dict[str, str | int]) -> Self:
+        title = str(game["game_name"])
+        main = int(game["comp_main"])
+        extra = int(game["comp_plus"])
+        complete = int(game["comp_100"])
+
+        return cls(title, main, extra, complete)
 
 
 def get_cli_parser() -> ArgumentParser:
@@ -28,18 +37,9 @@ def get_cli_parser() -> ArgumentParser:
     return parser
 
 
-def parse_game(game: Dict[str, str | int]) -> Game:
-    title = str(game["game_name"])
-    main = int(game["comp_main"])
-    extra = int(game["comp_plus"])
-    complete = int(game["comp_100"])
-
-    return Game(title, main, extra, complete)
-
-
 def get_games(game: str) -> None | List[Game]:
     headers = {
-        "Referer": "https://howlongtobeat.com/",
+        "Referer": BASE_URL,
         "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:122.0) Gecko/20100101 Firefox/122.0",
     }
 
@@ -56,7 +56,7 @@ def get_games(game: str) -> None | List[Game]:
         print(f"error getting game details {resp.status_code}")
         return
 
-    return [parse_game(game) for game in resp.json()["data"]]
+    return [Game.from_dict(game) for game in resp.json()["data"]]
 
 
 def _get_time_str(time: int) -> str:
