@@ -39,7 +39,7 @@ def get_cli_parser() -> ArgumentParser:
         "-n",
         type=int,
         metavar="N",
-        help="show top N games (max=20)",
+        help="show top N games",
         default=1,
     )
     parser.add_argument(
@@ -52,7 +52,7 @@ def get_cli_parser() -> ArgumentParser:
     return parser
 
 
-def get_games(game: str) -> None | List[Game]:
+def get_games(game: str, n: int) -> None | List[Game]:
     headers = {
         "Referer": BASE_URL,
         "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:122.0) Gecko/20100101 Firefox/122.0",
@@ -62,7 +62,7 @@ def get_games(game: str) -> None | List[Game]:
         "searchType": "games",
         "searchTerms": [game],
         "searchPage": 1,
-        "size": 50,
+        "size": n,
     }
 
     resp = post(f"{BASE_URL}/api/search", json=body, headers=headers)
@@ -103,14 +103,13 @@ def main():
     args = get_cli_parser().parse_args()
 
     game = args.game
-    n = 50 if args.num > 50 else args.num
+    games = get_games(game, args.num)
 
-    games = get_games(game)
     if not games:
         print("no games found")
         return
 
-    table = get_table(games[:n])
+    table = get_table(games)
     if not args.released:
         table.pop("released")
     if not args.alias:
