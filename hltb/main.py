@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+from importlib.metadata import version
 from typing import Dict, List, NamedTuple, Self
 
 from requests import post
@@ -48,6 +49,13 @@ def get_cli_parser() -> ArgumentParser:
 
     parser.add_argument(
         "--released", "-r", help="display the game's release year", action="store_true"
+    )
+    parser.add_argument(
+        "--version",
+        "-v",
+        help="show version",
+        action="version",
+        version="%(prog)s " + version("hltb"),
     )
     return parser
 
