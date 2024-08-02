@@ -1,5 +1,6 @@
+__version__ = "0.4.1"
+
 from argparse import ArgumentParser
-from importlib.metadata import version
 from typing import Dict, List, NamedTuple, Self
 
 from requests import post
@@ -55,7 +56,7 @@ def get_cli_parser() -> ArgumentParser:
         "-v",
         help="show version",
         action="version",
-        version="%(prog)s " + version("hltb"),
+        version="%(prog)s " + __version__,
     )
     return parser
 
