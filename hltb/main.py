@@ -1,4 +1,4 @@
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 
 from argparse import ArgumentParser
 from typing import Dict, List, NamedTuple, Self
@@ -74,7 +74,11 @@ def get_games(game: str, n: int) -> None | List[Game]:
         "size": n,
     }
 
-    resp = post(f"{BASE_URL}/api/search", json=body, headers=headers)
+    resp = post(
+        f"{BASE_URL}/api/search/4b4cbe570602c88660f7df8ea0cb6b6e",
+        json=body,
+        headers=headers,
+    )
 
     if not resp.ok:
         print(f"error getting game details {resp.status_code}")
