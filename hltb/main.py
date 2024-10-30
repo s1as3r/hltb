@@ -1,7 +1,8 @@
-__version__ = "0.4.2"
+__version__ = "0.4.3"
 
 from argparse import ArgumentParser
 from typing import Dict, List, NamedTuple, Self
+from os import getenv
 
 from requests import post
 from tabulate import tabulate
@@ -74,8 +75,10 @@ def get_games(game: str, n: int) -> None | List[Game]:
         "size": n,
     }
 
+
+    api_ext = getenv("HLTB_API_EXT", "")
     resp = post(
-        f"{BASE_URL}/api/search/4b4cbe570602c88660f7df8ea0cb6b6e",
+        f"{BASE_URL}/api/search/{api_ext}",
         json=body,
         headers=headers,
     )
