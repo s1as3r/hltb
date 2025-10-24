@@ -94,7 +94,7 @@ def get_games(game: str, n: int, ext: str) -> None | list[Game]:
         },
     }
 
-    url = f"{BASE_URL}/api/seek/{ext}"
+    url = f"{BASE_URL}/api/locate/{ext}"
     resp = post(
         url,
         json=body,
@@ -135,7 +135,7 @@ def _get_api_ext() -> str | None:
     ext_resp_content = ext_resp.content.decode("utf-8")
 
     ext_regex = re.compile(
-        r'/api/seek/[\'"]\.concat\([\'"](.*?)[\'"]\).concat\([\'"](.*?)[\'"]\)',
+        r'/api/locate/[\'"]\.concat\([\'"](.*?)[\'"]\).concat\([\'"](.*?)[\'"]\)',
         re.IGNORECASE,
     )
     ext_parts_list = ext_regex.findall(ext_resp_content)
