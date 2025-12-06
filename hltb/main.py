@@ -1,7 +1,7 @@
 __version__ = "0.5.3"
 
-import re
 from argparse import ArgumentParser
+from time import time
 from typing import NamedTuple, Self
 
 from requests import get, post
@@ -12,6 +12,7 @@ BASE_URL = "https://howlongtobeat.com"
 COMMON_HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:122.0) Gecko/20100101 Firefox/122.0",
     "Content-Type": "application/json",
+    "Referer": f"{BASE_URL}",
 }
 
 
@@ -67,8 +68,10 @@ def get_cli_parser() -> ArgumentParser:
     return parser
 
 
-def get_games(game: str, n: int, ext: str) -> None | list[Game]:
-    headers = COMMON_HEADERS | {"Referer": f"{BASE_URL}/?q={game}"}
+def get_games(game: str, n: int, token: str) -> None | list[Game]:
+    headers = COMMON_HEADERS | {
+        "x-auth-token": token,
+    }
 
     body = {
         "searchType": "games",
@@ -94,7 +97,7 @@ def get_games(game: str, n: int, ext: str) -> None | list[Game]:
         },
     }
 
-    url = f"{BASE_URL}/api/locate/{ext}"
+    url = f"{BASE_URL}/api/search"
     resp = post(
         url,
         json=body,
@@ -108,43 +111,11 @@ def get_games(game: str, n: int, ext: str) -> None | list[Game]:
     return [Game.from_dict(game) for game in resp.json()["data"]]
 
 
-def _get_ext_src_file_url() -> str | None:
-    resp = get(BASE_URL, headers=COMMON_HEADERS)
-    if not resp.ok:
-        print(f"error getting index {resp.status_code}")
-        return
-
-    resp_content = resp.content.decode("utf-8")
-    fname_re = re.compile(
-        r'src="(/_next/static/chunks/pages/_app-.*?js)"', re.IGNORECASE
-    )
-    src_file_url_list = fname_re.findall(resp_content)
-    if not src_file_url_list:
-        print("error getting src file name")
-        return
-
-    return f"{BASE_URL}{src_file_url_list.pop()}"
-
-
-def _get_api_ext() -> str | None:
-    src_file_url = _get_ext_src_file_url()
-    if not src_file_url:
-        return None
-
-    ext_resp = get(src_file_url, headers=COMMON_HEADERS)
-    ext_resp_content = ext_resp.content.decode("utf-8")
-
-    ext_regex = re.compile(
-        r'/api/locate/[\'"]\.concat\([\'"](.*?)[\'"]\).concat\([\'"](.*?)[\'"]\)',
-        re.IGNORECASE,
-    )
-    ext_parts_list = ext_regex.findall(ext_resp_content)
-    if not ext_parts_list:
-        print("error getting game ext: no parts")
-        return
-
-    (ext1, ext2) = ext_parts_list.pop()
-    return ext1 + ext2
+def _get_token() -> str | None:
+    time_ms = int(time() * 1000)
+    url = f"{BASE_URL}/api/search/init?t={time_ms}"
+    resp = get(url, headers=COMMON_HEADERS)
+    return resp.json().get("token")
 
 
 def _get_time_str(time: int) -> str:
@@ -176,11 +147,11 @@ def main():
     args = get_cli_parser().parse_args()
 
     game = args.game
-    ext = _get_api_ext()
-    if not ext:
+    token = _get_token()
+    if not token:
         return
 
-    games = get_games(game, args.num, ext)
+    games = get_games(game, args.num, token)
 
     if not games:
         print("no games found")
