@@ -1,7 +1,8 @@
-__version__ = "0.5.5"
+__version__ = "0.6.5"
 
 from argparse import ArgumentParser
-from time import time
+from threading import Event, Thread
+from time import sleep, time
 from typing import NamedTuple, Self
 
 from requests import get, post
@@ -15,6 +16,8 @@ COMMON_HEADERS = {
     "Content-Type": "application/json",
     "Referer": f"{BASE_URL}",
 }
+
+SPINNER_SLEEP_DURATION = 0.05
 
 
 class CompletionTimes(NamedTuple):
@@ -148,10 +151,33 @@ def get_table(games: list[Game]) -> dict[str, list[int | str]]:
     return table
 
 
-def main():
-    args = get_cli_parser().parse_args()
+def spin(query: str, stop_event: Event) -> None:
+    sprites = "\\|/-"
+    n_sprites = len(sprites)
+    idx = 0
 
+    while not stop_event.is_set():
+        print(f"looking for {query}", sprites[idx], end="\r")
+        idx = (idx + 1) % n_sprites
+        sleep(SPINNER_SLEEP_DURATION)
+
+
+def main() -> None:
+    args = get_cli_parser().parse_args()
     game = args.game
+
+    spinner_stop_event = Event()
+    spinner_thread = Thread(
+        name="spinner",
+        target=spin,
+        args=(
+            game,
+            spinner_stop_event,
+        ),
+        daemon=True,
+    )
+
+    spinner_thread.start()
     token_fpr = _get_auth_data()
     if not token_fpr or any(
         key not in token_fpr for key in ("token", "hpKey", "hpVal")
@@ -166,7 +192,9 @@ def main():
         token_fpr["hpVal"],
     )
     if not games:
-        print("no games found")
+        spinner_stop_event.set()
+        spinner_thread.join()
+        print("\nno games found")
         return
 
     table = get_table(games)
@@ -175,7 +203,9 @@ def main():
     if not args.alias:
         table.pop("alias")
 
-    print(tabulate(table, headers="keys"))
+    spinner_stop_event.set()
+    spinner_thread.join()
+    print("\r", tabulate(table, headers="keys"), sep="")
 
 
 if __name__ == "__main__":
