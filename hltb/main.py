@@ -1,4 +1,4 @@
-__version__ = "0.5.4"
+__version__ = "0.5.5"
 
 from argparse import ArgumentParser
 from time import time
@@ -8,6 +8,7 @@ from requests import get, post
 from tabulate import tabulate
 
 BASE_URL = "https://howlongtobeat.com"
+BASE_FIND_URL = f"{BASE_URL}/api/find"
 
 COMMON_HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:122.0) Gecko/20100101 Firefox/122.0",
@@ -68,12 +69,17 @@ def get_cli_parser() -> ArgumentParser:
     return parser
 
 
-def get_games(game: str, n: int, token: str) -> None | list[Game]:
+def get_games(
+    game: str, n: int, token: str, fpr_key: str, fpr_val: str
+) -> None | list[Game]:
     headers = COMMON_HEADERS | {
         "x-auth-token": token,
+        "x-hp-key": fpr_key,
+        "x-hp-val": fpr_val,
     }
 
     body = {
+        fpr_key: fpr_val,
         "searchType": "games",
         "searchTerms": [game],
         "searchPage": 1,
@@ -97,9 +103,8 @@ def get_games(game: str, n: int, token: str) -> None | list[Game]:
         },
     }
 
-    url = f"{BASE_URL}/api/search"
     resp = post(
-        url,
+        BASE_FIND_URL,
         json=body,
         headers=headers,
     )
@@ -111,11 +116,11 @@ def get_games(game: str, n: int, token: str) -> None | list[Game]:
     return [Game.from_dict(game) for game in resp.json()["data"]]
 
 
-def _get_token() -> str | None:
+def _get_auth_data() -> dict[str, str] | None:
     time_ms = int(time() * 1000)
-    url = f"{BASE_URL}/api/search/init?t={time_ms}"
+    url = f"{BASE_FIND_URL}/init?t={time_ms}"
     resp = get(url, headers=COMMON_HEADERS)
-    return resp.json().get("token")
+    return resp.json()
 
 
 def _get_time_str(time: int) -> str:
@@ -147,12 +152,19 @@ def main():
     args = get_cli_parser().parse_args()
 
     game = args.game
-    token = _get_token()
-    if not token:
+    token_fpr = _get_auth_data()
+    if not token_fpr or any(
+        key not in token_fpr for key in ("token", "hpKey", "hpVal")
+    ):
         return
 
-    games = get_games(game, args.num, token)
-
+    games = get_games(
+        game,
+        args.num,
+        token_fpr["token"],
+        token_fpr["hpKey"],
+        token_fpr["hpVal"],
+    )
     if not games:
         print("no games found")
         return
