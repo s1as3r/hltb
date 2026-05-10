@@ -9,7 +9,7 @@ from requests import get, post
 from tabulate import tabulate
 
 BASE_URL = "https://howlongtobeat.com"
-BASE_FIND_URL = f"{BASE_URL}/api/find"
+BASE_FIND_URL = f"{BASE_URL}/api/bleed"
 
 COMMON_HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:122.0) Gecko/20100101 Firefox/122.0",
